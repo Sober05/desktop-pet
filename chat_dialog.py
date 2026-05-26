@@ -1,7 +1,7 @@
 """Chat bubble dialog for the desktop pet."""
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                               QTextEdit, QLineEdit, QPushButton, QLabel)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QPoint, QEvent
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QPoint, QEvent, QRect
 from PyQt5.QtGui import QFont, QMouseEvent
 
 import threading
@@ -92,7 +92,7 @@ class ChatBubble(QWidget):
             }
             QPushButton:hover { color: #FF8C42; background: #3a3a4c; border-radius: 4px; }
         """)
-        close_btn.clicked.connect(self.close)
+        close_btn.clicked.connect(self._dismiss)
         title_row.addWidget(close_btn)
         layout.addLayout(title_row)
 
@@ -142,10 +142,32 @@ class ChatBubble(QWidget):
             pass
 
     def position_near(self, pet_geometry):
-        cx = pet_geometry.center().x()
-        top = pet_geometry.top()
-        x = cx - self.width() // 2
-        y = max(0, top - self.height() - 10)
+        from PyQt5.QtWidgets import QApplication
+        screen = QApplication.primaryScreen().availableGeometry()
+
+        px = pet_geometry.center().x()
+        py = pet_geometry.center().y()
+
+        # Try right side first, then left, then top, then bottom
+        positions = [
+            (pet_geometry.right() + 8, py - self.height() // 2),   # right
+            (pet_geometry.left() - self.width() - 8, py - self.height() // 2),  # left
+            (px - self.width() // 2, pet_geometry.top() - self.height() - 8),   # top
+            (px - self.width() // 2, pet_geometry.bottom() + 8),   # bottom
+        ]
+
+        for x, y in positions:
+            x = max(screen.left(), min(x, screen.right() - self.width()))
+            y = max(screen.top(), min(y, screen.bottom() - self.height()))
+            # Check if this position overlaps the pet
+            dialog_rect = QRect(x, y, self.width(), self.height())
+            if not dialog_rect.intersects(pet_geometry):
+                self.move(QPoint(x, y))
+                return
+
+        # Fallback: above the pet
+        x = max(screen.left(), min(px - self.width() // 2, screen.right() - self.width()))
+        y = max(screen.top(), pet_geometry.top() - self.height() - 8)
         self.move(QPoint(x, y))
 
     def _append_text(self, role, color, text):
@@ -210,39 +232,39 @@ class ChatBubble(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        # Install global event filter to detect clicks outside dialog
         from PyQt5.QtWidgets import QApplication
         app = QApplication.instance()
         if app:
             app.installEventFilter(self)
-        # Grab keyboard for Esc
-        self.grabKeyboard()
         self.input_box.setFocus()
 
     def eventFilter(self, obj, event):
-        # Mouse press anywhere outside this dialog -> close it
+        # Esc key anywhere -> dismiss dialog
+        if event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Escape:
+                self._dismiss()
+                return True
+        # Mouse click outside dialog -> dismiss dialog
         if event.type() == QEvent.MouseButtonPress:
             pos = event.globalPos() if hasattr(event, 'globalPos') else event.globalPosition().toPoint()
             if not self.geometry().contains(pos):
-                self.close()
+                self._dismiss()
                 return True
         return super().eventFilter(obj, event)
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            self.close()
-        else:
-            super().keyPressEvent(event)
-
-    def closeEvent(self, event):
-        # Remove event filter and release keyboard
+    def _dismiss(self):
+        """Hide dialog without quitting the app."""
         from PyQt5.QtWidgets import QApplication
         app = QApplication.instance()
         if app:
             app.removeEventFilter(self)
-        try:
-            self.releaseKeyboard()
-        except:
-            pass
+        self.hide()
+        self.closed.emit()
+
+    def closeEvent(self, event):
+        from PyQt5.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            app.removeEventFilter(self)
         self.closed.emit()
         super().closeEvent(event)

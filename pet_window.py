@@ -24,12 +24,6 @@ class PetWindow(QWidget):
         self.ai = ai_client or AIClient()
         self._chat = None
 
-        # Animation
-        self._anim_name = "idle"
-        self._anim_frames, self._anim_interval = ANIMATIONS["idle"]
-        self._frame_idx = 0
-        self._frame_counter = 0
-
         # Movement
         self._dragging = False
         self._drag_offset = QPoint()
@@ -38,8 +32,14 @@ class PetWindow(QWidget):
         self.setAcceptDrops(True)
         self._setup_window()
 
-        # Backend systems (tray, menu, idle, mood, etc.)
+        # Backend systems (tray, menu, idle, mood, etc.) — MUST come before animation
         self.sys = PetSystems(self)
+
+        # Animation (depends on self.sys for mood)
+        self._anim_name = "idle"
+        self._anim_frames, self._anim_interval = self._mood_idle()
+        self._frame_idx = 0
+        self._frame_counter = 0
 
         # Animation timer
         self._anim_timer = QTimer(self)
@@ -73,21 +73,46 @@ class PetWindow(QWidget):
             self.update()
 
     def set_animation(self, name, duration_ms=2000):
+        if name == "idle":
+            name = self._idle_for_mood()
+        elif name == "idle_blink":
+            name = self._blink_for_mood()
         if name not in ANIMATIONS:
             return
-        if self.sys.is_sleeping and name not in ("sleep", "idle_blink"):
+        if self.sys.is_sleeping and name not in ("sleep", "idle_blink",
+                                                   "idle_blink_happy",
+                                                   "idle_blink_sad"):
             return
         self._anim_name = name
         self._anim_frames, self._anim_interval = ANIMATIONS[name]
         self._frame_idx = 0
         self._anim_timer.setInterval(self._anim_interval)
         self.update()
-        if name not in ("idle", "sleep"):
+        if name not in ("idle", "idle_happy", "idle_sad", "sleep"):
             QTimer.singleShot(duration_ms, self._return_to_idle)
+
+    def _blink_for_mood(self):
+        mood = self.sys.mood
+        if mood >= 70:
+            return "idle_blink_happy"
+        elif mood < 40:
+            return "idle_blink_sad"
+        return "idle_blink"
 
     def _return_to_idle(self):
         if not self.sys.is_sleeping:
-            self.set_animation("idle")
+            self.set_animation(self._idle_for_mood())
+
+    def _idle_for_mood(self):
+        mood = self.sys.mood
+        if mood >= 70:
+            return "idle_happy"
+        elif mood < 40:
+            return "idle_sad"
+        return "idle"
+
+    def _mood_idle(self):
+        return ANIMATIONS[self._idle_for_mood()]
 
     def _current_frame(self):
         return self._anim_frames[self._frame_idx % len(self._anim_frames)]
@@ -131,6 +156,8 @@ class PetWindow(QWidget):
             self._drag_offset = event.pos()
             self.sys.boost_mood(3)
             self.set_animation("happy", 1500)
+        elif event.button() == Qt.RightButton:
+            self.sys.menu.popup(event.globalPos())
 
     def mouseMoveEvent(self, event: QMouseEvent):
         if self._dragging:
@@ -146,7 +173,7 @@ class PetWindow(QWidget):
             self._dragging = False
             if was_drag:
                 delta = event.globalPos() - (self.pos() + self._drag_offset)
-                if delta.manhattanLength() < 5:
+                if delta.manhattanLength() < 12:
                     self._open_chat()
                 self.sys._save_state()
 

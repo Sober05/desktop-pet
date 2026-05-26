@@ -211,12 +211,116 @@ SLEEP_2 = [
     "...DDD....DDD...",
 ]
 
+# --- Mood-based idle variants ---
+
+# Happy idle (mood >= 70): sparkle eyes, big smile, perky ears
+IDLE_HAPPY_1 = [
+    "................",
+    "....DD....DD....",
+    "...DBBD..DBBD...",
+    "...DBBD..DBBD...",
+    "....DD....DD....",
+    "...DDDDDDDDDD...",
+    "..DBBBBBBBBBBD..",
+    ".DBBBBW..WBBBBD.",
+    ".DBBBBWK.WBBBBD.",
+    ".DBBBBB..PBBBD..",
+    ".DBBBBBp.BBBBBD.",
+    ".DBBBBBBBBBBBD..",
+    "..DDDDDDDDDDDD..",
+    "...DDD.YY.DDD...",
+    "...DDD.YY.DDD...",
+    "...DDD....DDD...",
+]
+
+IDLE_HAPPY_2 = [
+    "................",
+    "....DD....DD....",
+    "...DBBD..DBBD...",
+    "...DBBD..DBBD...",
+    "....DD....DD....",
+    "...DDDDDDDDDD...",
+    "..DBBBBBBBBBBD..",
+    ".DBBBBW..WBBBBD.",
+    ".DBBBBWK.WBBBBD.",
+    ".DBBBBB..PBBBD..",
+    ".DBBBBB.PPBBBD..",
+    ".DBBBBBBBBBBBD..",
+    "..DDDDDDDDDDDD..",
+    "...DDD.YY..YY....",
+    "...DDD..YY......",
+    "...DDD....DDD...",
+]
+
+# Sad idle (mood < 40): droopy ears, sad eyes, small mouth
+IDLE_SAD_1 = [
+    "................",
+    "......DD....DD..",
+    ".....DBBD..DBBD.",
+    ".....DBBD..DBBD.",
+    "......DD....DD..",
+    ".....DDDDDDDDD..",
+    "....DBBBBBBBBD..",
+    "...DBBBWK.WBBBD.",
+    "...DBBBBW..BBBBD.",
+    "....DBBBB.PBBBD..",
+    "....DBBBBBBBBD..",
+    ".....DDDDDDDDD..",
+    "......DDD..DDD..",
+    "......DD.BB..DD..",
+    "......DD.BB..DD..",
+    "......DDD..DDD..",
+]
+
+IDLE_SAD_2 = [
+    "................",
+    "......DD....DD..",
+    ".....DBBD..DBBD.",
+    ".....DBBD..DBBD.",
+    "......DD....DD..",
+    ".....DDDDDDDDD..",
+    "....DBBBBBBBBD..",
+    "...DBBBWK.WBBBD.",
+    "...DBBBBW..BBBBD.",
+    "....DBBBB.PBBBD..",
+    "....DBBBBBBBBD..",
+    ".....DDDDDDDDD..",
+    "......DDD..DDD..",
+    "......DDBB...DD..",
+    "......DD.BB..DD..",
+    "......DDD..DDD..",
+]
+
+# Sad idle blink variant
+IDLE_SAD_BLINK = [
+    "................",
+    "......DD....DD..",
+    ".....DBBD..DBBD.",
+    ".....DBBD..DBBD.",
+    "......DD....DD..",
+    ".....DDDDDDDDD..",
+    "....DBBBBBBBBD..",
+    "...DBBB....BBBD.",
+    "...DBBB....BBBD.",
+    "....DBBBB.PBBBD..",
+    "....DBBBBBBBBD..",
+    ".....DDDDDDDDD..",
+    "......DDD..DDD..",
+    "......DD.BB..DD..",
+    "......DD.BB..DD..",
+    "......DDD..DDD..",
+]
+
 # Animation sequences: name -> (frames[], interval_ms)
 ANIMATIONS = {
-    "idle":     ([IDLE_1, IDLE_2], 500),
-    "walk":     ([WALK_1, WALK_2], 200),
-    "think":    ([THINK_1, THINK_2], 400),
-    "happy":    ([HAPPY_1, HAPPY_2], 300),
-    "sleep":    ([SLEEP_1, SLEEP_2], 800),
-    "idle_blink": ([IDLE_1, IDLE_1, IDLE_1, SLEEP_1, SLEEP_1, IDLE_1], 150),
+    "idle":       ([IDLE_1, IDLE_2], 500),
+    "idle_happy": ([IDLE_HAPPY_1, IDLE_HAPPY_2], 500),
+    "idle_sad":   ([IDLE_SAD_1, IDLE_SAD_2], 600),
+    "walk":       ([WALK_1, WALK_2], 200),
+    "think":      ([THINK_1, THINK_2], 400),
+    "happy":      ([HAPPY_1, HAPPY_2], 300),
+    "sleep":      ([SLEEP_1, SLEEP_2], 800),
+    "idle_blink":       ([IDLE_1, IDLE_1, IDLE_1, SLEEP_1, SLEEP_1, IDLE_1], 150),
+    "idle_blink_happy": ([IDLE_HAPPY_1, IDLE_HAPPY_1, IDLE_HAPPY_1, SLEEP_1, SLEEP_1, IDLE_HAPPY_1], 150),
+    "idle_blink_sad":   ([IDLE_SAD_1, IDLE_SAD_1, IDLE_SAD_1, IDLE_SAD_BLINK, IDLE_SAD_BLINK, IDLE_SAD_1], 200),
 }

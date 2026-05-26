@@ -160,30 +160,97 @@ class PetSystems:
             QMenu::item:selected { background: #FF8C42; }
         """)
 
+        # -- Primary actions --
         self._menu.addAction("💬 聊天").triggered.connect(self.pet._open_chat)
+        self._menu.addAction("😴 睡觉/醒来").triggered.connect(self._toggle_sleep)
+        self._menu.addSeparator()
 
-        launch = self._menu.addMenu("快速启动")
+        # -- Quick launch --
+        launch = self._menu.addMenu("🚀 快速启动")
         apps = self._cfg.get("quick_launch", [])
         if not apps:
-            # Sensible defaults: try to find common apps
             import shutil
             for name, exe in [("VS Code", "code"), ("Calculator", "calc")]:
                 found = shutil.which(exe)
                 if found:
                     apps.append({"name": name, "path": found})
-        for app in apps:
-            if isinstance(app, dict):
-                a = launch.addAction(app["name"])
-                a.triggered.connect(lambda checked, p=app["path"]: self._launch_app(p))
-            elif isinstance(app, list) and len(app) == 2:
-                a = launch.addAction(app[0])
-                a.triggered.connect(lambda checked, p=app[1]: self._launch_app(p))
+        if apps:
+            for app in apps:
+                if isinstance(app, dict):
+                    a = launch.addAction(app["name"])
+                    a.triggered.connect(lambda checked, p=app["path"]: self._launch_app(p))
+                elif isinstance(app, list) and len(app) == 2:
+                    a = launch.addAction(app[0])
+                    a.triggered.connect(lambda checked, p=app[1]: self._launch_app(p))
+        else:
+            launch.addAction("(在 config.json 中配置)").setEnabled(False)
 
+        # -- Settings --
+        settings = self._menu.addMenu("⚙️ 设置")
+        self._top_action = settings.addAction("📌 窗口置顶")
+        self._top_action.setCheckable(True)
+        self._top_action.setChecked(True)
+        self._top_action.triggered.connect(self._toggle_top)
+
+        self._auto_sleep_action = settings.addAction("💤 自动休眠")
+        self._auto_sleep_action.setCheckable(True)
+        self._auto_sleep_action.setChecked(True)
+        self._auto_sleep_action.triggered.connect(self._toggle_auto_sleep)
+
+        self._clipboard_action = settings.addAction("📋 剪贴板提示")
+        self._clipboard_action.setCheckable(True)
+        self._clipboard_action.setChecked(True)
+        self._clipboard_action.triggered.connect(self._toggle_clipboard)
+
+        self._auto_chat_action = settings.addAction("💭 主动搭话")
+        self._auto_chat_action.setCheckable(True)
+        self._auto_chat_action.setChecked(True)
+        self._auto_chat_action.triggered.connect(self._toggle_auto_chat)
+
+        # -- Status --
         self._menu.addSeparator()
-        self._menu.addAction("📌 切换置顶").triggered.connect(self._toggle_top)
-        self._menu.addAction("😴 睡觉/醒来").triggered.connect(self._toggle_sleep)
+        mood_label = "😊" if self._mood >= 70 else ("😐" if self._mood >= 40 else "😿")
+        self._mood_action = self._menu.addAction(f"心情 {mood_label} {self._mood}%")
+        self._mood_action.setEnabled(False)
+
+        # -- About & Quit --
         self._menu.addSeparator()
+        self._menu.addAction("ℹ️ 关于").triggered.connect(self._show_about)
         self._menu.addAction("❌ 退出").triggered.connect(self.pet._quit_app)
+
+    def _refresh_mood_display(self):
+        if hasattr(self, '_mood_action') and self._mood_action:
+            mood_label = "😊" if self._mood >= 70 else ("😐" if self._mood >= 40 else "😿")
+            self._mood_action.setText(f"心情 {mood_label} {self._mood}%")
+
+    def _toggle_auto_sleep(self):
+        if hasattr(self, '_idle_timer'):
+            if self._idle_timer.isActive():
+                self._idle_timer.stop()
+            else:
+                self._idle_timer.start()
+
+    def _toggle_clipboard(self):
+        pass  # handled by checkbox state visually; timer always runs
+
+    def _toggle_auto_chat(self):
+        if hasattr(self, '_behave_timer'):
+            if self._behave_timer.isActive():
+                self._behave_timer.stop()
+            else:
+                self._behave_timer.start()
+
+    def _show_about(self):
+        from PyQt5.QtWidgets import QMessageBox
+        QMessageBox.about(
+            self.pet,
+            "关于 桌面宠物",
+            "🐱 桌面宠物 v1.0\n\n"
+            "一只住在你桌面上的像素猫。\n"
+            "PyQt5 + DeepSeek AI 驱动。\n\n"
+            "GitHub: github.com/Sober05/desktop-pet\n"
+            "License: MIT"
+        )
 
     @property
     def menu(self):
@@ -248,10 +315,12 @@ class PetSystems:
 
     def boost_mood(self, amount):
         self._mood = min(100, self._mood + amount)
+        self._refresh_mood_display()
 
     def _decay_mood(self):
         if not self._is_sleeping:
             self._mood = max(0, self._mood - 1)
+        self._refresh_mood_display()
         self._save_state()
 
     def _save_state(self):
@@ -276,7 +345,7 @@ class PetSystems:
         actions = ["blink", "blink", "walk", "sit", "sit", "chat"]
         action = random.choice(actions)
         if action == "blink":
-            self.pet.set_animation("idle_blink", 900)
+            self.pet.set_animation("idle_blink", 900)  # mood-aware in set_animation
         elif action == "walk":
             self._start_auto_walk()
         elif action == "chat":
