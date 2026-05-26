@@ -1,0 +1,20 @@
+# Sensitive / user-specific files
+config.json
+*.log
+pet-log.txt
+chat-history.json
+.pet-lock
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
